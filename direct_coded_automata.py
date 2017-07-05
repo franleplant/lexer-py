@@ -110,6 +110,14 @@ def get_next_token(src, start_index):
                 # transition
                 data["state"] = "OPREL_COMPOSITE"
 
+            elif c == "\"":
+                token['lexeme'] += c
+                token["category"] = "STRING"
+                data['i'] += 1
+
+                # transition
+                data["state"] = "STRING"
+
             elif c.isalpha():
                 token['lexeme'] += c
                 token["category"] = "ID"
@@ -222,6 +230,38 @@ def get_next_token(src, start_index):
                 data["error"] = "ERROR: NOT RECOGNIZED TOKEN"
                 break;
 
+        elif data["state"] == "STRING":
+            token['lexeme'] += c
+            token["category"] = "STRING"
+            data['i'] += 1
+
+            if c == "\"":
+                # transition
+                data["state"] = "STRING_END"
+
+            else:
+                # transition
+                data["state"] = "STRING"
+
+        elif data["state"] == "STRING_END":
+            if c.isspace():
+                # no next char
+                # data['i'] += 1
+
+                # transition
+                data['state'] = "WHITESPACE"
+
+            elif c == ")":
+                # lambda transition
+                break
+
+            else:
+                token['lexeme'] += c
+                token["category"] = "ERROR"
+                data['i'] += 1
+
+                data["error"] = "ERROR: NOT RECOGNIZED TOKEN"
+                break;
 
 
         else:
@@ -257,6 +297,9 @@ assert token == {"category": "NUMBER", "lexeme": "12345"}, "Simple number"
 assert token == {"category": "OPREL", "lexeme": ">="}
 (_, token, _) = get_next_token(">= ", 0)
 assert token == {"category": "OPREL", "lexeme": ">="}
+
+(_, token, _) = get_next_token('"hello 123"', 0)
+assert token == {"category": "STRING", "lexeme": '"hello 123"'}
 
 
 
