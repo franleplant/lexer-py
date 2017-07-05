@@ -1,23 +1,5 @@
-
-# TODO
-# - document as much as possible the delta extended function: (state, char) -> (next_state, actions)
-# - automatic tests
-# - debug
-# - add an EOF unique char, maybe a  space
-
-
-
-def get_category_for_id(s):
-    if s == "define":
-        return "DEFINE"
-    elif s == "if":
-        return "IF"
-    elif s == "and":
-        return "AND"
-    else:
-        return "ID"
-
-    return token
+from common import get_category_for_id
+from test import lex_test, get_next_token_test
 
 def lex(src):
     print "+++++++++++++++"
@@ -41,7 +23,6 @@ def lex(src):
 
     return tokens
 
-# we expected an whitespace at the end of the file
 def get_next_token(src, start_index):
     data = {
         "i": start_index,
@@ -92,6 +73,7 @@ def get_next_token(src, start_index):
                 data['i'] += 1
 
                 # transition
+                # TRAILING WHITESPACE
                 data['state'] = "WHITESPACE"
 
             elif c == '=':
@@ -280,65 +262,5 @@ def get_next_token(src, start_index):
     return (data["error"], token, data["i"])
 
 
-# f = open('./lisp.src', 'r')
-# src = f.read()
-# print src
-
-#
-# Get Next Token
-#
-(_, token, _) = get_next_token("hello", 0)
-assert token == {"category": "ID", "lexeme": "hello"}, "Simple word"
-
-(_, token, _) = get_next_token("12345", 0)
-assert token == {"category": "NUMBER", "lexeme": "12345"}, "Simple number"
-
-(_, token, _) = get_next_token(">=", 0)
-assert token == {"category": "OPREL", "lexeme": ">="}
-(_, token, _) = get_next_token(">= ", 0)
-assert token == {"category": "OPREL", "lexeme": ">="}
-
-(_, token, _) = get_next_token('"hello 123"', 0)
-assert token == {"category": "STRING", "lexeme": '"hello 123"'}
-
-
-
-#
-# Lex
-#
-tokens = lex("> 123")
-expected = [
-    {"category": "OPREL", "lexeme": ">"},
-    {"category": "NUMBER", "lexeme": "123"},
-]
-assert tokens == expected, "Should work"
-
-tokens = lex("hello ")
-expected = [
-    {"category": "ID", "lexeme": "hello"},
-]
-assert tokens == expected, "EOF testing"
-
-tokens = lex("abc123")
-expected = []
-assert tokens == expected, "fail case"
-
-
-tokens = lex("(define (myfn x y)\n  (+ 123 x y))")
-expected = [
-    {"category": "PAROPEN", "lexeme": "("},
-    {"category": "DEFINE", "lexeme": "define"},
-    {"category": "PAROPEN", "lexeme": "("},
-    {"category": "ID", "lexeme": "myfn"},
-    {"category": "ID", "lexeme": "x"},
-    {"category": "ID", "lexeme": "y"},
-    {"category": "PARCLOSE", "lexeme": ")"},
-    {"category": "PAROPEN", "lexeme": "("},
-    {"category": "OPMAT", "lexeme": "+"},
-    {"category": "NUMBER", "lexeme": "123"},
-    {"category": "ID", "lexeme": "x"},
-    {"category": "ID", "lexeme": "y"},
-    {"category": "PARCLOSE", "lexeme": ")"},
-    {"category": "PARCLOSE", "lexeme": ")"},
-]
-assert tokens == expected, "integrated case"
+get_next_token_test(get_next_token)
+lex_test(lex)
