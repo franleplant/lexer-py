@@ -1,20 +1,10 @@
 from common import get_category_for_id
 from test import lex_test, get_next_token_test
 
-def action(data, token):
-    token['lexeme'] += c
-    token["category"] = category
-    data['index'] += 1
-
-    end = True
-    return end
-
-
 def buildAction(category, end=False):
     def action(c, data, token):
         token['lexeme'] += c
         token["category"] = category
-        data['index'] += 1
         return end
     return action
 
@@ -22,28 +12,27 @@ def buildErrorAction(error):
     def action(c, data, token):
         token['lexeme'] += c
         token["category"] = "ERROR"
-        data['index'] += 1
         data["error"] = "ERROR: " + error
     return action
-
-def action1(c, data, token):
-    data["index"] += 1
-
-def actionIdTryReserved(c, data, token):
-    token["category"] = get_category_for_id(token["lexeme"])
-
-def actionId(c, data, token):
-    token['lexeme'] += c
-    token["category"] = get_category_for_id(token["lexeme"])
-    data['index'] += 1
-
 
 def actionNull(c, data, token):
     pass
 
+def actionIdTryReserved(c, data, token):
+    token["category"] = get_category_for_id(token["lexeme"])
+    data["index"] -= 1
+
+def actionId(c, data, token):
+    token['lexeme'] += c
+    token["category"] = get_category_for_id(token["lexeme"])
+
+
+def actionLambda(c, data, token):
+    data["index"] -= 1
+
 
 delta = [
-    ("INITIAL"            , lambda c: c.isspace()                     , "INITIAL"            , action1                              ),
+    ("INITIAL"            , lambda c: c.isspace()                     , "INITIAL"            , actionNull                              ),
     ("INITIAL"            , lambda c: c == "("                        , "END"                , buildAction("PAROPEN", True)         ),
     ("INITIAL"            , lambda c: c == ")"                        , "END"                , buildAction("PARCLOSE", True)        ),
     ("INITIAL"            , lambda c: c == '+' or c == '-' or c == '*', "TRAILING_WHITESPACE", buildAction("OPMAT")                 ),
@@ -54,11 +43,11 @@ delta = [
     ("INITIAL"            , lambda c: c.isdigit()                     , "NUMBER"             , buildAction("NUMBER")                ),
     ("INITIAL"            , lambda c: True                            , "ERROR"              , buildErrorAction("BAD INIT TOKEN")   ),
 
-    ("TRAILING_WHITESPACE", lambda c: c.isspace()                     , "END"                , action1                                ),
+    ("TRAILING_WHITESPACE", lambda c: c.isspace()                     , "END"                , actionNull                                ),
     ("TRAILING_WHITESPACE", lambda c: True                            , "END"                , buildErrorAction("WHITESPACE EXPECTED")),
 
     ("OPREL_COMPOSITE"    , lambda c: c == "="                        , "TRAILING_WHITESPACE", buildAction("OPREL")                        ),
-    ("OPREL_COMPOSITE"    , lambda c: c.isspace()                     , "TRAILING_WHITESPACE", actionNull                                  ),
+    ("OPREL_COMPOSITE"    , lambda c: c.isspace()                     , "TRAILING_WHITESPACE", actionLambda                                  ),
     ("OPREL_COMPOSITE"    , lambda c: True                            , "ERROR"              , buildErrorAction("WHITESPACE OR = EXPECTED")),
 
     ("ID"                 , lambda c: c.isalpha()                     , "ID"                 , actionId                      ),
@@ -67,15 +56,15 @@ delta = [
     ("ID"                 , lambda c: True                            , "ERROR"              , buildErrorAction("BAD ID")    ),
 
     ("NUMBER"             , lambda c: c.isdigit()                     , "NUMBER"             , buildAction("NUMBER")         ),
-    ("NUMBER"             , lambda c: c.isspace()                     , "TRAILING_WHITESPACE", actionNull                    ),
-    ("NUMBER"             , lambda c: c == ")"                        , "END"                , actionNull                    ),
+    ("NUMBER"             , lambda c: c.isspace()                     , "TRAILING_WHITESPACE", actionLambda                    ),
+    ("NUMBER"             , lambda c: c == ")"                        , "END"                , actionLambda                    ),
     ("NUMBER"             , lambda c: True                            , "ERROR"              , buildErrorAction("BAD NUMBER")),
 
     ("STRING"             , lambda c: c == '"'                        , "STRING_END"         , buildAction("STRING")         ),
     ("STRING"             , lambda c: True                            , "STRING"             , buildAction("STRING")         ),
 
-    ("STRING_END"         , lambda c: c.isspace()                     , "TRAILING_WHITESPACE", actionNull                    ),
-    ("STRING_END"         , lambda c: c == ")"                        , "END"                , actionNull                    ),
+    ("STRING_END"         , lambda c: c.isspace()                     , "TRAILING_WHITESPACE", actionLambda                    ),
+    ("STRING_END"         , lambda c: c == ")"                        , "END"                , actionLambda                    ),
     ("STRING_END"         , lambda c: True                            , "ERROR"              , buildErrorAction("BAD STRING")),
 ]
 
@@ -115,6 +104,7 @@ def get_next_token(src, start_index):
                 continue
 
             found = True
+            data['index'] += 1
             action(c, data, token)
             data["state"] = next_state
             break
